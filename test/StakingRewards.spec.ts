@@ -266,7 +266,7 @@ describe('StakingRewards', () => {
 
     // fast-forward ~5 days through the reward window
     await mineBlock(provider, startTime.add(24*3600*5).toNumber())
-console.log("=================Rewards after 5th day==============");
+    console.log("=================Rewards after 5th day==============");
     console.log("====> ", (await stakingRewards.earned(staker.address))/1e18);
     console.log("====> ", (await stakingRewards.earned(secondStaker.address))/1e18);
 
@@ -293,6 +293,61 @@ await stakingRewards.connect(secondStaker).exit()
     // fast-forward past the reward window
     await mineBlock(provider, vals["endTime"].add(1).toNumber())
 console.log("=================Rewards after 25th day==============");
+    console.log("====> ", (await stakingRewards.earned(staker.address))/1e18);
+    console.log("====> ", (await stakingRewards.earned(secondStaker.address))/1e18);
+    console.log("====> ", (await stakingRewards.earned(thirdStaker.address))/1e18);
+
+    // // unstake
+    // await stakingRewards.connect(staker).exit()
+    // const stakeEndTime: BigNumber = await stakingRewards.lastUpdateTime()
+    // expect(stakeEndTime).to.be.eq(endTime)
+    // await stakingRewards.connect(secondStaker).exit()
+
+    // const rewardAmount = await rewardsToken.balanceOf(staker.address)
+    // const secondRewardAmount = await rewardsToken.balanceOf(secondStaker.address)
+    // const totalReward = rewardAmount.add(secondRewardAmount)
+
+    // // ensure results are within .01%
+    // expect(reward.sub(totalReward).lte(reward.div(10000))).to.be.true
+    // expect(totalReward.mul(3).div(4).sub(rewardAmount).lte(totalReward.mul(3).div(4).div(10000)))
+    // expect(totalReward.div(4).sub(secondRewardAmount).lte(totalReward.div(4).div(10000)))
+  })
+
+  it('extend program', async () => {
+    // stake with first staker
+    let stake = expandTo18Decimals(10)
+    await stakingToken.transfer(staker.address, stake)
+    await stakingToken.connect(staker).approve(stakingRewards.address, stake)
+    await stakingRewards.connect(staker).stake(stake)
+
+    // stake with second staker
+    stake = expandTo18Decimals(40)
+    await stakingToken.transfer(secondStaker.address, stake)
+    await stakingToken.connect(secondStaker).approve(stakingRewards.address, stake)
+    await stakingRewards.connect(secondStaker).stake(stake)
+
+
+    let { startTime, endTime } = await start1(expandTo18Decimals(500),24*3600*10)
+
+    // fast-forward ~5 days through the reward window
+    await mineBlock(provider, startTime.add(24*3600*10).toNumber())
+    console.log("=================Rewards after 10th day==============");
+
+    console.log("====> ", (await stakingRewards.earned(staker.address))/1e18);
+    console.log("====> ", (await stakingRewards.earned(secondStaker.address))/1e18);
+
+    stake = expandTo18Decimals(50)
+    await stakingToken.transfer(thirdStaker.address, stake)
+    await stakingToken.connect(thirdStaker).approve(stakingRewards.address, stake)
+    await stakingRewards.connect(thirdStaker).stake(stake)
+
+    let vals = await start1(expandTo18Decimals(300),24*3600*20)
+
+
+    // fast-forward past the reward window
+    await mineBlock(provider, vals["endTime"].add(1).toNumber())
+    console.log("=================Rewards after 25th day==============");
+
     console.log("====> ", (await stakingRewards.earned(staker.address))/1e18);
     console.log("====> ", (await stakingRewards.earned(secondStaker.address))/1e18);
     console.log("====> ", (await stakingRewards.earned(thirdStaker.address))/1e18);
