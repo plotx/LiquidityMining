@@ -17,6 +17,7 @@ contract StakingRewardsFactory is Ownable {
     struct StakingRewardsInfo {
         address stakingRewards;
         uint rewardAmount;
+        uint duration;
     }
 
     // rewards info by staking token
@@ -36,13 +37,21 @@ contract StakingRewardsFactory is Ownable {
 
     // deploy a staking reward contract for the staking token, and store the reward amount
     // the reward will be distributed to the staking reward contract no sooner than the genesis
-    function deploy(address stakingToken, uint rewardAmount) public onlyOwner {
+    function deploy(address stakingToken, uint rewardAmount, uint256 rewardsDuration) public onlyOwner {
         StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];
         require(info.stakingRewards == address(0), 'StakingRewardsFactory::deploy: already deployed');
 
         info.stakingRewards = address(new StakingRewards(/*_rewardsDistribution=*/ address(this), rewardsToken, stakingToken));
         info.rewardAmount = rewardAmount;
+        info.duration = rewardsDuration;
         stakingTokens.push(stakingToken);
+    }
+
+    function update(address stakingToken, uint rewardAmount, uint256 rewardsDuration) public onlyOwner {    
+        StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];   
+        require(info.stakingRewards != address(0), 'StakingRewardsFactory::update: not deployed');  
+        info.rewardAmount = rewardAmount;   
+        info.duration = rewardsDuration;    
     }
 
     ///// permissionless functions
@@ -63,15 +72,21 @@ contract StakingRewardsFactory is Ownable {
         StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];
         require(info.stakingRewards != address(0), 'StakingRewardsFactory::notifyRewardAmount: not deployed');
 
-        if (info.rewardAmount > 0) {
+        if (info.rewardAmount > 0 && info.duration > 0) {
             uint rewardAmount = info.rewardAmount;
+            uint256 duration = info.duration;
             info.rewardAmount = 0;
+            info.duration = 0;
 
             require(
                 IERC20(rewardsToken).transfer(info.stakingRewards, rewardAmount),
                 'StakingRewardsFactory::notifyRewardAmount: transfer failed'
             );
-            StakingRewards(info.stakingRewards).notifyRewardAmount(rewardAmount);
+            StakingRewards(info.stakingRewards).notifyRewardAmount(rewardAmount, duration);
         }
+    }
+
+    function pullExtraTokens(address token, uint256 amount) external onlyOwner {    
+        IERC20(token).transfer(msg.sender, amount); 
     }
 }

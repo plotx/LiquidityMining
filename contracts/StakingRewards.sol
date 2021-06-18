@@ -20,7 +20,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     IERC20 public stakingToken;
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
-    uint256 public rewardsDuration = 60 days;
+    // uint256 public rewardsDuration = 60 days;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
 
@@ -70,9 +70,9 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
     }
 
-    function getRewardForDuration() external view returns (uint256) {
-        return rewardRate.mul(rewardsDuration);
-    }
+    // function getRewardForDuration() external view returns (uint256) {
+    //     return rewardRate.mul(rewardsDuration);
+    // }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
@@ -120,7 +120,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function notifyRewardAmount(uint256 reward) external onlyRewardsDistribution updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward, uint256 rewardsDuration) external onlyRewardsDistribution updateReward(address(0)) {
         if (block.timestamp >= periodFinish) {
             rewardRate = reward.div(rewardsDuration);
         } else {
@@ -144,6 +144,12 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     /* ========== MODIFIERS ========== */
 
     modifier updateReward(address account) {
+        if(_totalSupply == 0) {
+            uint _reward = rewardRate.mul(lastTimeRewardApplicable().sub(lastUpdateTime));
+            if(_reward>0){
+                rewardsToken.safeTransfer(rewardsDistribution, _reward);
+            }
+        }
         rewardPerTokenStored = rewardPerToken();
         lastUpdateTime = lastTimeRewardApplicable();
         if (account != address(0)) {
